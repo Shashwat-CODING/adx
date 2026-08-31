@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -28,7 +33,7 @@ jobs:
       - name: Build Binaries
         run: |
           mkdir -p dist
-          VERSION=${GITHUB_REF_NAME:-v1.0.0}
+          VERSION="${{ github.ref_type == 'tag' && github.ref_name || inputs.tag || 'v1.0.0' }}"
 
           targets=(
             "darwin/arm64/adx"
@@ -65,6 +70,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag || 'v1.0.0' }}
           files: |
             dist/*.tar.gz
             dist/*.zip
