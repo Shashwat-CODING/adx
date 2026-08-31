@@ -35,17 +35,17 @@ func OrangeSoft() *color.Color {
 
 var bannerOnce sync.Once
 
-// PrintBanner prints a medium-sized stylized ADX banner in orange
+// PrintBanner prints a medium-sized stylized adx banner in orange
 func PrintBanner() {
 	banner := `
-     _    ____  __  __
-    / \  |  _ \ \ \/ /
-   / _ \ | | | | \  / 
-  / ___ \| |_| | /  \ 
- /_/   \_\____/ /_/\_\
+           _       
+  __ _  __| |_  __ 
+ / _  |/ _  | \ \/ /
+| (_| | (_| |  ><  
+ \__,_|\__,_|/_/\_\
 `
 	orange.Print(banner)
-	orangeSoft.Println(" Android Developer Experience CLI")
+	orangeSoft.Println(" android developer experience cli")
 	fmt.Println()
 }
 
