@@ -1,158 +1,243 @@
-# adx
+<p align="center">
+  <img src="adx.png" alt="ADX Banner" width="100%">
+</p>
 
-`adx` is a blazing-fast, zero-config CLI tool for Android developers working with Gradle, Kotlin, and Java. It eliminates cumbersome Gradle wrapper (`./gradlew`) and ADB commands by automating project detection, multi-device targeting, APK installation, live logcat streaming, clean builds, emulator launching, and dependency management.
-
----
-
-## Features
-
-- 🚀 **Zero Configuration**: Automatically discovers your Android project root, Gradle wrapper, `applicationId`, launcher activities, and APK build outputs.
-- 📱 **Smart Device & Emulator Management**:
-  - `adx run emulator` / `adx emulator`: Lists AVDs, auto-launches if only 1 exists, or displays an interactive selection menu.
-  - Automatically targets connected devices or emulators.
-  - If multiple devices are connected, offers an interactive selector to choose a single device or deploy to **All connected devices**.
-- 🛠️ **Simplified Builds & Runs**:
-  - `adx build` / `adx build release`: Animated spinner tracking active Gradle tasks (`:app:compileDebugKotlin`), high-contrast red error reporting, and clickable output paths.
-  - `adx run` / `adx run release`: Builds, selects device, installs, and launches app (`--open`).
-- 📦 **Automated Dependency Management**:
-  - `adx add <name>`: Searches Maven Central (or aliases like `retrofit`, `coil-compose`, `room`), injects into `libs.versions.toml` or `build.gradle[.kts]`, and downloads with Gradle.
-  - `adx update`: Checks for newer stable releases and upgrades project versions.
-- 🧹 **Deep Clean / Nuke**:
-  - `adx nuke`: Fixes corrupted Kotlin, KSP, and KAPT caches that plague developers after git branch switching.
-  - `adx kill`: Kills rogue daemons and restarts ADB server.
-- 📸 **Media & Testing Utilities**:
-  - `adx screenshot [file.png]`: Captures device screen with clickable file link.
-  - `adx record [file.mp4]`: Records device video until Ctrl+C.
-  - `adx open <url>`: Tests deep links and app links.
-  - `adx sha`: Extracts SHA-1 and SHA-256 fingerprints for Firebase and Google APIs.
-  - `adx uninstall`: Cleans up app packages from device(s).
-  - `adx reverse 8080`: Reverse port forwards localhost to Android device.
-  - `adx clear`: Clears app data & cache without reinstalling.
-  - `adx test`: Fast unit test execution with clickable HTML report.
-  - `adx lint`: Android Lint analysis with clickable report.
-  - `adx bundle`: Builds Google Play `.aab` bundles.
+<p align="center">
+  <h1 align="center">⚡ ADX — Android Developer Experience CLI</h1>
+  <p align="center">
+    <strong>Making Android development effortless — eliminate the pain of messy Gradle and ADB commands.</strong>
+  </p>
+  <p align="center">
+    Developed with ❤️ by <a href="https://github.com/Shashwat-CODING"><strong>Shashwat</strong></a>
+  </p>
+  <p align="center">
+    <a href="https://github.com/Shashwat-CODING/adx/releases"><img src="https://img.shields.io/github/v/release/Shashwat-CODING/adx?color=blue&style=flat-square" alt="Latest Release"></a>
+    <a href="https://go.dev/"><img src="https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat-square&logo=go" alt="Go Version"></a>
+    <a href="https://github.com/Shashwat-CODING/adx/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License"></a>
+    <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square" alt="Platform Support">
+  </p>
+</p>
 
 ---
 
-## Installation
-
-```bash
-cd /Users/shashwat/Desktop/andcli
-go install .
 ```
-
-`adx` is installed at:
-- `/opt/homebrew/bin/adx`
-- `/Users/shashwat/.local/bin/adx`
-- `~/go/bin/adx`
+     _    ____  __  __
+    / \  |  _ \ \ \/ /
+   / _ \ | | | | \  / 
+  / ___ \| |_| | /  \ 
+ /_/   \_\____/ /_/\_\
+ Android Developer Experience CLI
+```
 
 ---
 
-## Command Reference
+## 💡 Why ADX?
 
-### 1. Emulator
+Tired of typing long `./gradlew assembleDebug` commands, memorizing esoteric `adb` flags, wrestling with hung daemons, or manually hunting library coordinates on Maven Central?
+
+**ADX** is a unified developer experience CLI designed to eliminate the friction, verbosity, and maintenance overhead of Gradle and ADB in Android projects. Whether you build in **Kotlin** or **Java**, ADX handles the heavy lifting behind the scenes so you can focus on shipping features.
+
+### The Problem vs. The Solution
+
+| Developer Task | Traditional Android Workflow | With ADX |
+|---|---|---|
+| **Build & Deploy** | `./gradlew assembleDebug` + `adb install -r -t ...` + `adb shell am start ...` | `adx run` |
+| **Multiple Devices** | `adb devices` ➜ copy serial ➜ `adb -s <serial> install ...` | Interactive selection menu or deploy to all devices |
+| **Add Dependency** | Search browser ➜ find version ➜ edit `libs.versions.toml` ➜ sync | `adx add retrofit` (auto-resolves & syncs) |
+| **Update Libraries** | Check dependencies manually one by one | `adx update` |
+| **Corrupted Caches** | Build breaks after git branch switch; manual `rm -rf .gradle build` | `adx nuke` |
+| **Hung Daemons / ADB** | Find PIDs, kill processes, restart adb server | `adx kill` |
+| **App Logs** | `adb logcat` (drowning in OS noise) | `adx logs` (filtered to app package & active PID) |
+| **Launch Emulator** | Open Android Studio Device Manager or type long emulator path | `adx run emulator` |
+| **Firebase / API Keys** | Run lengthy `keytool -list -v` commands | `adx sha` |
+| **Local API Testing** | `adb reverse tcp:8080 tcp:8080` | `adx reverse 8080` |
+| **Take Screenshot** | Android Studio screenshot button or `adb exec-out screencap` | `adx screenshot` (with clickable link) |
+
+---
+
+## 🚀 Installation
+
+### Option 1: Using Go (Recommended)
+
 ```bash
-# Auto-launch if 1 AVD exists, or show picker if multiple
-adx emulator
-adx run emulator
+go install github.com/Shashwat-CODING/adx@latest
+```
+*Ensure `$GOPATH/bin` or `~/go/bin` is in your `PATH`.*
 
-# Launch specific AVD directly
-adx emulator Pixel_8_API_34
+### Option 2: Prebuilt Binaries
+
+Download prebuilt standalone binaries directly from [GitHub Releases](https://github.com/Shashwat-CODING/adx/releases):
+
+| OS | Architecture | Binary |
+|---|---|---|
+| **macOS** | Apple Silicon (M1/M2/M3/M4) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+| **macOS** | Intel (x86_64) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+| **Linux** | x86_64 | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+| **Linux** | ARM64 | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+| **Windows** | x86_64 (`adx.exe`) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+
+### Option 3: Build From Source
+
+```bash
+git clone https://github.com/Shashwat-CODING/adx.git
+cd adx
+go build -o adx .
 ```
 
-### 2. Build APK
+---
+
+## 📖 Command Reference
+
+### 🛠️ Build & Run Workflows
+
+#### Build APK
+Builds debug or release APKs with a clean animated task spinner and clickable output links.
 ```bash
-# Build debug APK with animated spinner
-adx build
-
-# Build release APK
-adx build release
-
-# Verbose live output
-adx build -v
+adx build                # Build debug APK
+adx build release        # Build release APK
+adx build -v             # Build with full verbose streaming logs
+adx build debug --clean  # Clean before building
 ```
 
-### 3. Run App (Build + Deploy + Launch)
+#### Run App (Build + Deploy + Launch)
+Builds the APK, lets you select from connected physical devices or emulators, installs the APK, and launches the app.
 ```bash
-# Build debug, install on connected device, and launch app
-adx run
-
-# Build release, install and launch
-adx run release
-
-# Install existing APK without rebuilding
-adx run --no-build
+adx run                  # Build debug, select target, install, and open app
+adx run release          # Build release, install, and open app
+adx run --no-build       # Skip rebuild, install and open existing APK
+adx run -d emulator-5554 # Deploy to a specific device serial
 ```
 
-### 4. Dependency Management
+#### Launch Emulator
+Lists available Android Virtual Devices (AVDs). If only 1 exists, launches it immediately; if multiple exist, displays an interactive selector.
 ```bash
-# Add dependency from Maven Central and download with Gradle
+adx emulator             # Launch AVD
+adx run emulator         # Alternative alias
+adx emulator Pixel_8     # Launch specific AVD
+```
+
+---
+
+### 📦 Dependency Management
+
+#### Add Dependency
+Searches Maven Central, finds the latest stable version, injects coordinates into your Version Catalog (`libs.versions.toml`) or `build.gradle[.kts]`, and downloads it with Gradle.
+```bash
 adx add retrofit
 adx add coil-compose
 adx add androidx.room:room-runtime
 adx add hilt-compiler --config ksp
-
-# Check for newer stable versions of project dependencies
-adx update --check
-
-# Upgrade project dependencies and sync
-adx update
+adx add junit --config testImplementation
 ```
 
-### 5. Media Capture & Deep Links
+#### Update Dependencies
+Scans declared project dependencies, queries Maven Central for newer stable releases, and updates your project files.
 ```bash
-# Take screenshot
-adx screenshot
-adx screenshot bug-report.png
+adx update --check       # Preview available updates without editing files
+adx update               # Update all dependencies and sync with Gradle
+```
 
-# Record screen video (press Ctrl+C to stop)
-adx record demo.mp4
+---
 
-# Test deep link or app link
+### 🧹 Cache & Daemon Troubleshooting
+
+#### Nuke Corrupted Caches
+Fixes corrupted Kotlin, KSP, and KAPT caches that break builds after switching branches.
+```bash
+adx nuke                 # Deletes .gradle/, all build/ folders, and stops daemons
+```
+
+#### Kill Rogue Daemons & Reset ADB
+Terminates stuck Gradle/Kotlin daemons consuming 100% CPU/RAM and restarts the ADB server.
+```bash
+adx kill
+```
+
+#### Clean Build Outputs
+Standard `./gradlew clean`.
+```bash
+adx clean
+```
+
+---
+
+### 📱 Device & Media Utilities
+
+#### Live App Logs
+Streams real-time logcat output filtered strictly to your app's package ID and active process ID.
+```bash
+adx logs                 # Stream logs for current application
+adx logs --clear         # Clear logcat buffer before streaming
+adx logs -p com.pkg      # Stream logs for explicit package name
+```
+
+#### Screen Capture & Recording
+Captures media directly from the device with IDE-clickable `file:///...` links.
+```bash
+adx screenshot           # Take screenshot (saves screenshot-<timestamp>.png)
+adx screenshot bug.png   # Save to specific file
+adx record demo.mp4      # Record screen video (press Ctrl+C to stop)
+```
+
+#### Deep Link Testing
+Dispatches an `android.intent.action.VIEW` intent directly to the connected device.
+```bash
 adx open "myapp://details?id=42"
+adx open "https://example.com/checkout"
 ```
 
-### 6. Keystore Fingerprints (Firebase & Google APIs)
+#### Keystore Fingerprints (Firebase & Google APIs)
+Extracts and displays MD5, SHA-1, and SHA-256 fingerprints from `~/.android/debug.keystore` (or custom keystores) in clean, copy-pasteable format.
 ```bash
-# Print debug keystore SHA-1 and SHA-256
 adx sha
-
-# Print custom release keystore fingerprints
 adx sha --keystore /path/to/release.jks --alias mykey --password secret
 ```
 
-### 7. Cache Fixes & Cleanup
+#### App & Network Utilities
 ```bash
-# Deep clean: deletes .gradle/, build/ folders, and stops daemons
-adx nuke
-
-# Kill stuck Gradle daemons and restart ADB
-adx kill
-
-# Clear app data on device (resets Room DB / SharedPreferences)
-adx clear
-
-# Uninstall app from device
-adx uninstall
+adx reverse 8080         # Forward localhost:8080 to Android device
+adx clear                # Clear app data & cache on device (Room, SharedPreferences)
+adx uninstall            # Uninstall app from connected device(s)
+adx stop                 # Force stop app process
+adx devices              # List all attached devices and emulators
+adx doctor               # Validate JDK, Android SDK, ADB, and Gradle wrapper
+adx info                 # Inspect project root, module structure, and package ID
+adx bundle release       # Build Google Play App Bundle (.aab)
+adx test                 # Run unit tests with clickable HTML report
+adx lint                 # Run Android Lint analysis with clickable report
 ```
 
-### 8. Network & Quality Tools
-```bash
-# Reverse port forward localhost:8080 to device
-adx reverse 8080
+---
 
-# Run unit tests with clickable HTML report
-adx test
+## ☕ Kotlin & Java Compatibility
 
-# Run Android Lint
-adx lint
+`adx` is 100% compatible with both **Kotlin** and **Java** Android projects:
+- **Kotlin DSL** (`build.gradle.kts`) and **Groovy DSL** (`build.gradle`) are both natively supported.
+- **Gradle Version Catalogs** (`gradle/libs.versions.toml`) are detected and updated automatically.
+- Multi-module and single-module project architectures are auto-detected without manual configuration.
 
-# Build App Bundle (.aab for Google Play)
-adx bundle
+---
 
-# Stream real-time logs filtered to app package
-adx logs --clear
+## 🤝 Contributing
 
-# Validate toolchain environment
-adx doctor
-```
+Contributions, issues, and feature requests are welcome!
+
+1. Fork the Project (`https://github.com/Shashwat-CODING/adx`)
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: add some amazing feature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 👤 Author
+
+Developed by **Shashwat**
+- **GitHub**: [@Shashwat-CODING](https://github.com/Shashwat-CODING)
+- **Repository**: [https://github.com/Shashwat-CODING/adx](https://github.com/Shashwat-CODING/adx)
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
