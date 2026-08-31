@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - name: Build Binaries
+        run: |
+          mkdir -p dist
+          VERSION=${GITHUB_REF_NAME:-v1.0.0}
+
+          targets=(
+            "darwin/arm64/adx"
+            "darwin/amd64/adx"
+            "linux/amd64/adx"
+            "linux/arm64/adx"
+            "windows/amd64/adx.exe"
+          )
+
+          for target in "${targets[@]}"; do
+            IFS="/" read -r GOOS GOARCH BINARY <<< "$target"
+            OUT_DIR="dist/adx_${GOOS}_${GOARCH}"
+            mkdir -p "$OUT_DIR"
+
+            echo "Building for $GOOS/$GOARCH..."
+            CGO_ENABLED=0 GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="-s -w" -o "$OUT_DIR/$BINARY" .
+
+            cp README.md "$OUT_DIR/"
+
+            if [ "$GOOS" = "windows" ]; then
+              (cd dist && zip -r "adx_${VERSION}_${GOOS}_${GOARCH}.zip" "adx_${GOOS}_${GOARCH}")
+            else
+              tar -czvf "dist/adx_${VERSION}_${GOOS}_${GOARCH}.tar.gz" -C dist "adx_${GOOS}_${GOARCH}"
+            fi
+            rm -rf "$OUT_DIR"
+          done
+
+      - name: Generate Checksums
+        run: |
+          cd dist
+          sha256sum adx_* > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false
