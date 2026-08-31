@@ -57,12 +57,16 @@ Tired of typing long `./gradlew assembleDebug` commands, memorizing esoteric `ad
 
 ## 🚀 Installation
 
-### Option 1: One-Line Installer (macOS & Linux)
+### Option 1: One-Line Installers
 
-Install `adx` in seconds without configuring Go:
-
+#### macOS & Linux (Terminal)
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Shashwat-CODING/adx/main/install.sh | bash
+```
+
+#### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/Shashwat-CODING/adx/main/install.ps1 | iex
 ```
 
 ---
