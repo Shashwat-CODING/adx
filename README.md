@@ -109,13 +109,8 @@ sudo mv adx /usr/local/bin/
 Install directly using Homebrew:
 
 ```bash
-brew tap Shashwat-CODING/adx
+brew tap Shashwat-CODING/adx https://github.com/Shashwat-CODING/adx
 brew install adx
-```
-
-Or in a single command:
-```bash
-brew install Shashwat-CODING/adx/adx
 ```
 
 ---
