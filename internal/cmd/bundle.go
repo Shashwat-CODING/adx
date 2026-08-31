@@ -12,11 +12,14 @@ import (
 )
 
 var bundleCmd = &cobra.Command{
-	Use:   "bundle [variant]",
-	Short: "Build Android App Bundle (.aab) for Google Play",
+	Use:     "bundle [variant]",
+	Aliases: []string{"aab", "abb"},
+	Short:   "Build Android App Bundle (.aab) for Google Play",
 	Long: `Builds an Android App Bundle (.aab) for publishing (defaults to release).
-Example:
+Examples:
   adx bundle
+  adx aab
+  adx abb
   adx bundle release
   adx bundle debug`,
 	RunE: func(cmd *cobra.Command, args []string) error {

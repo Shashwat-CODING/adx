@@ -20,6 +20,12 @@
 
 ---
 
+<p align="center">
+  <img src="demo.gif" alt="adx CLI demo" width="100%">
+</p>
+
+---
+
 ```
            _       
   __ _  __| |_  __ 
@@ -230,8 +236,17 @@ adx sha
 adx sha --keystore /path/to/release.jks --alias mykey --password secret
 ```
 
-#### App & Network Utilities
+#### App, Toolchain & Diagnostic Utilities
 ```bash
+adx check-compat         # Validate Kotlin, Compose Compiler, AGP & Gradle compatibility
+adx ui                   # Dump active screen UI hierarchy tree (Layout Inspector)
+adx ui --filter Button   # Inspect specific UI node elements on screen
+adx proxy set 192.168.1.5:8888 # Route device network traffic to Proxyman/Charles
+adx proxy clear          # Clear proxy and restore direct device connection
+adx proxy status         # Check active HTTP proxy on connected device
+adx prefs dump           # Dump SharedPreferences XML files from app storage
+adx db list              # List SQLite / Room databases inside app storage
+adx db pull app.db       # Pull SQLite database from device to host machine
 adx reverse 8080         # Forward localhost:8080 to Android device
 adx clear                # Clear app data & cache on device (Room, SharedPreferences)
 adx uninstall            # Uninstall app from connected device(s)
@@ -239,9 +254,13 @@ adx stop                 # Force stop app process
 adx devices              # List all attached devices and emulators
 adx doctor               # Validate JDK, Android SDK, ADB, and Gradle wrapper
 adx info                 # Inspect project root, module structure, and package ID
-adx bundle release       # Build Google Play App Bundle (.aab)
+adx install app --open   # Auto-detect available APK (prefers release), install and open
+adx install release --open # Install built release APK and launch it
+adx bundle / adx aab     # Build Google Play App Bundle (.aab)
 adx test                 # Run unit tests with clickable HTML report
 adx lint                 # Run Android Lint analysis with clickable report
+adx analyse              # Full quality check: lint + tests + all static analysis
+adx analyse :feature:x   # Analyse a specific module only
 ```
 
 ---

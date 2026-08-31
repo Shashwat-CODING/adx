@@ -151,26 +151,51 @@ func (c *Client) LaunchApp(serial string, packageName string, launcherActivity s
 		return fmt.Errorf("cannot launch app: packageName is unknown")
 	}
 
-	var cmd *exec.Cmd
+	var launched bool
+
+	// 1. Try explicit launcherActivity if provided
 	if launcherActivity != "" {
 		target := launcherActivity
 		if !strings.Contains(target, "/") {
 			target = packageName + "/" + launcherActivity
 		}
-		cmd = exec.Command(c.AdbPath, "-s", serial, "shell", "am", "start", "-n", target)
-	} else {
-		cmd = exec.Command(c.AdbPath, "-s", serial, "shell", "monkey", "-p", packageName, "-c", "android.intent.category.LAUNCHER", "1")
-	}
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		// Fallback to monkey if explicit intent failed
-		fallback := exec.Command(c.AdbPath, "-s", serial, "shell", "monkey", "-p", packageName, "-c", "android.intent.category.LAUNCHER", "1")
-		if fallOut, fallErr := fallback.CombinedOutput(); fallErr != nil {
-			return fmt.Errorf("failed to launch %s: %s / %s", packageName, string(out), string(fallOut))
+		cmd := exec.Command(c.AdbPath, "-s", serial, "shell", "am", "start", "-n", target)
+		out, err := cmd.CombinedOutput()
+		outStr := string(out)
+		// Note: am start exits with code 0 even if "Error: Activity class ... does not exist"
+		if err == nil && !strings.Contains(outStr, "Error:") && !strings.Contains(outStr, "does not exist") {
+			launched = true
 		}
 	}
-	return nil
+
+	if launched {
+		return nil
+	}
+
+	// 2. Fallback to monkey which queries the device's PackageManager for the exact launcher intent
+	monkeyCmd := exec.Command(c.AdbPath, "-s", serial, "shell", "monkey", "-p", packageName, "-c", "android.intent.category.LAUNCHER", "1")
+	out, err := monkeyCmd.CombinedOutput()
+	outStr := string(out)
+	if err == nil && (strings.Contains(outStr, "Events injected: 1") || strings.Contains(outStr, "Events injected")) {
+		return nil
+	}
+
+	// 3. Fallback to querying resolve-activity on device
+	resolveCmd := exec.Command(c.AdbPath, "-s", serial, "shell", "cmd", "package", "resolve-activity", "--brief", packageName)
+	if resOut, resErr := resolveCmd.Output(); resErr == nil {
+		lines := strings.Split(strings.TrimSpace(string(resOut)), "\n")
+		for _, l := range lines {
+			l = strings.TrimSpace(l)
+			if strings.Contains(l, "/") && !strings.HasPrefix(l, "priority=") {
+				startCmd := exec.Command(c.AdbPath, "-s", serial, "shell", "am", "start", "-n", l)
+				if sOut, sErr := startCmd.CombinedOutput(); sErr == nil && !strings.Contains(string(sOut), "Error:") {
+					return nil
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("failed to launch %s on device (%s)", packageName, strings.TrimSpace(outStr))
 }
 
 // ForceStop force-stops an application

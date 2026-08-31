@@ -12,11 +12,12 @@ import (
 
 // Project holds metadata about the detected Android project
 type Project struct {
-	RootDir         string
-	GradlewPath     string
-	AppModuleDir    string
-	AppModuleName   string
-	PackageName     string
+	RootDir          string
+	GradlewPath      string
+	AppModuleDir     string
+	AppModuleName    string
+	PackageName      string
+	Namespace        string
 	LauncherActivity string
 }
 
@@ -123,8 +124,8 @@ func FindProject(startDir string) (*Project, error) {
 		p.AppModuleName = "app"
 	}
 
-	// 3. Extract Package Name / Application ID
-	p.PackageName = p.detectPackageName()
+	// 3. Extract Package Name / Application ID and Namespace
+	p.PackageName, p.Namespace = p.detectPackageAndNamespace()
 
 	// 4. Extract Launcher Activity
 	p.LauncherActivity = p.detectLauncherActivity()
@@ -132,7 +133,7 @@ func FindProject(startDir string) (*Project, error) {
 	return p, nil
 }
 
-func (p *Project) detectPackageName() string {
+func (p *Project) detectPackageAndNamespace() (string, string) {
 	// 1. Check build.gradle.kts or build.gradle in app module
 	buildFiles := []string{
 		filepath.Join(p.AppModuleDir, "build.gradle.kts"),
@@ -144,6 +145,8 @@ func (p *Project) detectPackageName() string {
 	reAppID := regexp.MustCompile(`(?i)applicationId\s*=?\s*["']([^"']+)["']`)
 	reNamespace := regexp.MustCompile(`(?i)namespace\s*=?\s*["']([^"']+)["']`)
 
+	var appId, ns string
+
 	for _, bf := range buildFiles {
 		data, err := os.ReadFile(bf)
 		if err != nil {
@@ -151,13 +154,15 @@ func (p *Project) detectPackageName() string {
 		}
 		content := string(data)
 
-		// First check applicationId
-		if m := reAppID.FindStringSubmatch(content); len(m) > 1 {
-			return m[1]
+		if appId == "" {
+			if m := reAppID.FindStringSubmatch(content); len(m) > 1 {
+				appId = m[1]
+			}
 		}
-		// Then namespace
-		if m := reNamespace.FindStringSubmatch(content); len(m) > 1 {
-			return m[1]
+		if ns == "" {
+			if m := reNamespace.FindStringSubmatch(content); len(m) > 1 {
+				ns = m[1]
+			}
 		}
 	}
 
@@ -174,11 +179,23 @@ func (p *Project) detectPackageName() string {
 			continue
 		}
 		if m := rePkg.FindStringSubmatch(string(data)); len(m) > 1 {
-			return m[1]
+			if ns == "" {
+				ns = m[1]
+			}
+			if appId == "" {
+				appId = m[1]
+			}
 		}
 	}
 
-	return ""
+	if appId == "" && ns != "" {
+		appId = ns
+	}
+	if ns == "" && appId != "" {
+		ns = appId
+	}
+
+	return appId, ns
 }
 
 type manifestXML struct {
@@ -265,11 +282,16 @@ func (p *Project) detectLauncherActivity() string {
 }
 
 func (p *Project) formatActivity(actName string) string {
-	if strings.HasPrefix(actName, ".") && p.PackageName != "" {
-		return p.PackageName + actName
+	basePkg := p.Namespace
+	if basePkg == "" {
+		basePkg = p.PackageName
 	}
-	if !strings.Contains(actName, ".") && p.PackageName != "" {
-		return p.PackageName + "." + actName
+
+	if strings.HasPrefix(actName, ".") && basePkg != "" {
+		return basePkg + actName
+	}
+	if !strings.Contains(actName, ".") && basePkg != "" {
+		return basePkg + "." + actName
 	}
 	return actName
 }
@@ -323,3 +345,37 @@ func (p *Project) FindApk(variant string) (string, error) {
 
 	return "", fmt.Errorf("no %s APK found in build outputs. Please run 'adx build %s' first", variant, variant)
 }
+
+// FindBestAvailableApk searches for existing APKs, preferring "release", then "debug", then any available APK.
+func (p *Project) FindBestAvailableApk() (string, string, error) {
+	// 1. Prefer release APK
+	if apk, err := p.FindApk("release"); err == nil {
+		return apk, "release", nil
+	}
+	// 2. Try debug APK
+	if apk, err := p.FindApk("debug"); err == nil {
+		return apk, "debug", nil
+	}
+	// 3. Scan all candidate dirs for any .apk
+	candidateDirs := []string{
+		filepath.Join(p.AppModuleDir, "build", "outputs", "apk"),
+		filepath.Join(p.RootDir, "build", "outputs", "apk"),
+	}
+	var foundApks []string
+	for _, dir := range candidateDirs {
+		if _, err := os.Stat(dir); err != nil {
+			continue
+		}
+		_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+			if err == nil && !info.IsDir() && strings.HasSuffix(path, ".apk") {
+				foundApks = append(foundApks, path)
+			}
+			return nil
+		})
+	}
+	if len(foundApks) > 0 {
+		return foundApks[0], "custom", nil
+	}
+	return "", "", fmt.Errorf("no APK found in build outputs. Please run 'adx build' first")
+}
+

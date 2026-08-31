@@ -28,6 +28,10 @@ Examples:
 				variant = args[0]
 			}
 
+			if variant == "aab" || variant == "abb" || variant == "bundle" {
+				return bundleCmd.RunE(cmd, []string{"release"})
+			}
+
 			p, err := GetProject()
 			if err != nil {
 				return err
