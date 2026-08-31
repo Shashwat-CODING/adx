@@ -57,31 +57,72 @@ Tired of typing long `./gradlew assembleDebug` commands, memorizing esoteric `ad
 
 ## 🚀 Installation
 
-### Option 1: Using Go (Recommended)
+### Option 1: One-Line Installer (macOS & Linux)
+
+Install `adx` in seconds without configuring Go:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Shashwat-CODING/adx/main/install.sh | bash
+```
+
+---
+
+### Option 2: Using Go
 
 ```bash
 go install github.com/Shashwat-CODING/adx@latest
 ```
-*Ensure `$GOPATH/bin` or `~/go/bin` is in your `PATH`.*
+*Ensure `$GOPATH/bin` or `~/go/bin` is added to your shell's `PATH`:*
+```bash
+export PATH="$PATH:$(go env GOPATH)/bin"
+```
 
-### Option 2: Prebuilt Binaries
+---
 
-Download prebuilt standalone binaries directly from [GitHub Releases](https://github.com/Shashwat-CODING/adx/releases):
+### Option 3: Prebuilt Standalone Binaries
 
-| OS | Architecture | Binary |
+Download standalone precompiled binaries directly from [GitHub Releases](https://github.com/Shashwat-CODING/adx/releases):
+
+| OS | Architecture | Download |
 |---|---|---|
-| **macOS** | Apple Silicon (M1/M2/M3/M4) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
-| **macOS** | Intel (x86_64) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
-| **Linux** | x86_64 | [Download](https://github.com/Shashwat-CODING/adx/releases) |
-| **Linux** | ARM64 | [Download](https://github.com/Shashwat-CODING/adx/releases) |
-| **Windows** | x86_64 (`adx.exe`) | [Download](https://github.com/Shashwat-CODING/adx/releases) |
+| **macOS** | Apple Silicon (M1/M2/M3/M4) | [Download tar.gz](https://github.com/Shashwat-CODING/adx/releases) |
+| **macOS** | Intel (x86_64) | [Download tar.gz](https://github.com/Shashwat-CODING/adx/releases) |
+| **Linux** | x86_64 | [Download tar.gz](https://github.com/Shashwat-CODING/adx/releases) |
+| **Linux** | ARM64 | [Download tar.gz](https://github.com/Shashwat-CODING/adx/releases) |
+| **Windows** | x86_64 (`adx.exe`) | [Download zip](https://github.com/Shashwat-CODING/adx/releases) |
 
-### Option 3: Build From Source
+#### Quick Manual Setup:
+```bash
+# Example for macOS Apple Silicon
+tar -xzf adx_*_darwin_arm64.tar.gz
+sudo mv adx /usr/local/bin/
+```
+
+---
+
+### Option 4: Homebrew (macOS & Linux)
+
+Install directly using Homebrew:
+
+```bash
+brew tap Shashwat-CODING/adx
+brew install adx
+```
+
+Or in a single command:
+```bash
+brew install Shashwat-CODING/adx/adx
+```
+
+---
+
+### Option 5: Build From Source
 
 ```bash
 git clone https://github.com/Shashwat-CODING/adx.git
 cd adx
 go build -o adx .
+sudo mv adx /usr/local/bin/
 ```
 
 ---
