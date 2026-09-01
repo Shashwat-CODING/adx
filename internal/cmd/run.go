@@ -10,9 +10,11 @@ import (
 )
 
 var (
-	runOpenFlag    bool
-	runNoBuildFlag bool
-	runCleanFlag   bool
+	runOpenFlag             bool
+	runNoBuildFlag          bool
+	runCleanFlag            bool
+	runClearDataFlag        bool
+	runGrantPermissionsFlag bool
 
 	runCmd = &cobra.Command{
 		Use:   "run [variant]",
@@ -25,6 +27,7 @@ Examples:
   adx run debug --open
   adx run release
   adx run debug --no-build
+  adx run debug --clear-data --grant-permissions
   adx run debug -d emulator-5554`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			variant := "debug"
@@ -51,7 +54,16 @@ Examples:
 
 			ui.Info("Targeting %d device(s)", len(targetDevices))
 
-			// 3. Build APK unless --no-build specified
+			// 3. Clear data if requested before install/run
+			if runClearDataFlag && p.PackageName != "" {
+				ui.Step("Clearing app data/cache...")
+				for _, dev := range targetDevices {
+					_ = adbClient.ClearData(dev.Serial, p.PackageName)
+					ui.Info("Cleared data for %s on %s", p.PackageName, dev.Model)
+				}
+			}
+
+			// 4. Build APK unless --no-build specified
 			runner := gradle.NewRunner(p, IsVerbose())
 			if !runNoBuildFlag {
 				if runCleanFlag {
@@ -65,7 +77,7 @@ Examples:
 				}
 			}
 
-			// 4. Locate APK
+			// 5. Locate APK
 			apkPath, err := p.FindApk(variant)
 			if err != nil {
 				return fmt.Errorf("could not find %s APK: %w", variant, err)
@@ -76,17 +88,22 @@ Examples:
 				ui.Info("Found APK: %s (%.2f MB)", ui.ClickablePath(apkPath), sizeMB)
 			}
 
-			// 5. Install on target devices
+			// 6. Install on target devices
 			ui.Step("Installing APK on target device(s)...")
+			installArgs := []string{}
+			if runGrantPermissionsFlag {
+				installArgs = append(installArgs, "-g")
+			}
+
 			if len(targetDevices) == 1 {
 				dev := targetDevices[0]
 				ui.Info("Installing on %s (%s)...", dev.Model, dev.Serial)
-				if err := adbClient.InstallAPK(dev.Serial, apkPath); err != nil {
+				if err := adbClient.InstallAPKWithArgs(dev.Serial, apkPath, installArgs...); err != nil {
 					return err
 				}
 				ui.Success("Installation succeeded on %s", dev.Model)
 			} else {
-				errs := adbClient.InstallParallel(targetDevices, apkPath)
+				errs := adbClient.InstallParallelWithArgs(targetDevices, apkPath, installArgs...)
 				var failedCount int
 				for i, e := range errs {
 					if e != nil {
@@ -99,7 +116,14 @@ Examples:
 				}
 			}
 
-			// 6. Launch application if --open is set
+			// If clear-data requested after install as well
+			if runClearDataFlag && p.PackageName != "" {
+				for _, dev := range targetDevices {
+					_ = adbClient.ClearData(dev.Serial, p.PackageName)
+				}
+			}
+
+			// 7. Launch application if --open is set
 			if runOpenFlag {
 				ui.Step("Launching application...")
 				if p.PackageName == "" {
@@ -127,5 +151,7 @@ func init() {
 	runCmd.Flags().BoolVar(&runOpenFlag, "open", true, "Open the application on device(s) after installation")
 	runCmd.Flags().BoolVar(&runNoBuildFlag, "no-build", false, "Skip build step and install existing APK")
 	runCmd.Flags().BoolVarP(&runCleanFlag, "clean", "c", false, "Clean project before building")
+	runCmd.Flags().BoolVar(&runClearDataFlag, "clear-data", false, "Wipe app cache and storage data before launching")
+	runCmd.Flags().BoolVar(&runGrantPermissionsFlag, "grant-permissions", false, "Automatically grant all runtime permissions on installation")
 	rootCmd.AddCommand(runCmd)
 }

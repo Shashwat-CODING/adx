@@ -115,7 +115,16 @@ func (c *Client) GetDevices() ([]Device, error) {
 
 // InstallAPK installs the specified APK file onto a device
 func (c *Client) InstallAPK(serial string, apkPath string) error {
-	cmd := exec.Command(c.AdbPath, "-s", serial, "install", "-r", "-t", "-d", apkPath)
+	return c.InstallAPKWithArgs(serial, apkPath)
+}
+
+// InstallAPKWithArgs installs the specified APK file onto a device with extra flags (e.g. -g)
+func (c *Client) InstallAPKWithArgs(serial string, apkPath string, extraArgs ...string) error {
+	args := []string{"-s", serial, "install", "-r", "-t", "-d"}
+	args = append(args, extraArgs...)
+	args = append(args, apkPath)
+
+	cmd := exec.Command(c.AdbPath, args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil || !strings.Contains(string(out), "Success") {
 		return fmt.Errorf("install failed on %s: %s (%v)", serial, strings.TrimSpace(string(out)), err)
@@ -125,6 +134,11 @@ func (c *Client) InstallAPK(serial string, apkPath string) error {
 
 // InstallParallel installs the APK across multiple devices concurrently
 func (c *Client) InstallParallel(devices []Device, apkPath string) []error {
+	return c.InstallParallelWithArgs(devices, apkPath)
+}
+
+// InstallParallelWithArgs installs the APK across multiple devices concurrently with extra args
+func (c *Client) InstallParallelWithArgs(devices []Device, apkPath string, extraArgs ...string) []error {
 	var wg sync.WaitGroup
 	errs := make([]error, len(devices))
 
@@ -133,7 +147,7 @@ func (c *Client) InstallParallel(devices []Device, apkPath string) []error {
 		go func(idx int, dev Device) {
 			defer wg.Done()
 			ui.Info("Installing on %s (%s)...", dev.Model, dev.Serial)
-			if err := c.InstallAPK(dev.Serial, apkPath); err != nil {
+			if err := c.InstallAPKWithArgs(dev.Serial, apkPath, extraArgs...); err != nil {
 				errs[idx] = err
 			} else {
 				ui.Success("Installed successfully on %s (%s)", dev.Model, dev.Serial)
@@ -143,6 +157,12 @@ func (c *Client) InstallParallel(devices []Device, apkPath string) []error {
 
 	wg.Wait()
 	return errs
+}
+
+// ClearData clears app data and cache via pm clear
+func (c *Client) ClearData(serial string, packageName string) error {
+	cmd := exec.Command(c.AdbPath, "-s", serial, "shell", "pm", "clear", packageName)
+	return cmd.Run()
 }
 
 // LaunchApp launches the application using its launcher activity or monkey fallback

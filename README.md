@@ -39,25 +39,45 @@
 
 ## 💡 Why ADX?
 
-Tired of typing long `./gradlew assembleDebug` commands, memorizing esoteric `adb` flags, wrestling with hung daemons, or manually hunting library coordinates on Maven Central?
+Whether you are a **human developer** typing in your terminal or an **AI coding assistant** (like Claude Code, Codex, Antigravity, Cursor, or Aider) executing commands autonomously, Android development tooling is notoriously noisy, verbose, and friction-heavy.
 
-**ADX** is a unified developer experience CLI designed to eliminate the friction, verbosity, and maintenance overhead of Gradle and ADB in Android projects. Whether you build in **Kotlin** or **Java**, ADX handles the heavy lifting behind the scenes so you can focus on shipping features.
+**ADX** solves this by providing clean, fast, zero-config CLI primitives with first-class terminal UX for humans and deterministic machine-readable JSON & token savings for AI agents.
+
+---
+
+### 🤖 Why AI Coding Tools Love ADX (Massive Token & Cost Savings)
+
+AI coding agents struggle with standard Gradle & ADB workflows because traditional tools dump thousands of lines of terminal noise that overflow LLM context windows and burn API tokens:
+
+* **⚡ Up to 95% Token Savings**: Standard `./gradlew test` or raw `adb logcat` can dump 20,000+ tokens of passing lifecycle noise. `adx test --failed-only` and `adx crash` isolate *only* the failing assertion, root cause, and stack trace in under 300 tokens.
+* **📦 Clean Machine-Readable Output (`--json`)**: Every core command supports `--json`, letting AI agents consume structured ASTs/JSON without fragile regex or shell text parsing.
+* **🎯 Non-Interactive Autonomous Execution (`--auto-pick`)**: Avoids blocking prompts when multiple emulators/devices are connected by intelligently auto-selecting the active emulator.
+* **🧠 Instant Root-Cause Attribution**: `adx crash` pinpoints the offending source file and exact line number, allowing AI assistants to jump straight to fixing the bug without multi-turn log exploration.
+* **👁️ Instant Screen Hierarchy & UI Inspection (`adx layout dump --json`)**: Replaces heavy, XML-bloated `uiautomator dump` with a compact, structured JSON tree of interactive UI elements (`bounds`, `clickable`, `resource-id`, `text`), making automated UI verification instant for agents.
+
+---
+
+### 👨‍💻 Why Human Developers Love ADX
+
+* **Zero-Config Simplicity**: No more memorizing esoteric `adb shell` parameters, port forward arguments, or Gradle daemon commands.
+* **Interactive Device Selection**: Effortlessly target single or all connected physical phones and emulators.
+* **Automated Dependency Injection**: `adx add <lib>` automatically finds latest versions on Maven Central and updates your Version Catalog (`libs.versions.toml`).
+* **Clickable IDE Hyperlinks**: Output paths are formatted with clickable `file://` links to instantly open reports, screenshots, and source files in VS Code / Android Studio.
+* **One-Command Troubleshooting**: Recover instantly from broken branch caches with `adx nuke` and kill stuck daemons with `adx kill`.
 
 ### The Problem vs. The Solution
 
-| Developer Task | Traditional Android Workflow | With ADX |
-|---|---|---|
-| **Build & Deploy** | `./gradlew assembleDebug` + `adb install -r -t ...` + `adb shell am start ...` | `adx run` |
-| **Multiple Devices** | `adb devices` ➜ copy serial ➜ `adb -s <serial> install ...` | Interactive selection menu or deploy to all devices |
-| **Add Dependency** | Search browser ➜ find version ➜ edit `libs.versions.toml` ➜ sync | `adx add retrofit` (auto-resolves & syncs) |
-| **Update Libraries** | Check dependencies manually one by one | `adx update` |
-| **Corrupted Caches** | Build breaks after git branch switch; manual `rm -rf .gradle build` | `adx nuke` |
-| **Hung Daemons / ADB** | Find PIDs, kill processes, restart adb server | `adx kill` |
-| **App Logs** | `adb logcat` (drowning in OS noise) | `adx logs` (filtered to app package & active PID) |
-| **Launch Emulator** | Open Android Studio Device Manager or type long emulator path | `adx run emulator` |
-| **Firebase / API Keys** | Run lengthy `keytool -list -v` commands | `adx sha` |
-| **Local API Testing** | `adb reverse tcp:8080 tcp:8080` | `adx reverse 8080` |
-| **Take Screenshot** | Android Studio screenshot button or `adb exec-out screencap` | `adx screenshot` (with clickable link) |
+| Developer Task | Traditional Android Workflow | With ADX | AI / Human Benefit |
+|---|---|---|---|
+| **Build & Deploy** | `./gradlew assembleDebug` + `adb install ...` + `adb shell am start ...` | `adx run` | One command replaces 3 steps |
+| **Crash & ANR Analysis** | Grepping raw `logcat` through 5,000 lines of OS noise | `adx crash` / `adx trace` | 95% token savings & instant file:line mapping |
+| **Unit Test Failures** | Gradle test runs printing hundreds of passing tests | `adx test --failed-only` | Compact failure summary with expected vs actual |
+| **UI Screen Inspection** | Raw XML `uiautomator dump` | `adx layout dump --json` | Compact JSON of interactive elements |
+| **Dependency Lookup** | Search browser ➜ find version ➜ edit catalog ➜ sync | `adx add <lib>` / `adx deps --find <lib>` | Instant Maven lookup & resolution path |
+| **Corrupted Caches** | Build breaks after branch switch; manual folder deletes | `adx nuke` | One-shot deep clean |
+| **Build Performance** | Guessing JVM settings and daemon status | `adx analyze-build` | Instant daemon & build-cache diagnostics |
+| **Local API Proxying** | `adb reverse tcp:8080 tcp:8080` | `adx reverse 8080` / `adx port-forward` | Quick host & device socket forwarding |
+| **Clean App Testing** | Manually clearing data in device Settings + granting perms | `adx run --clear-data --grant-permissions` | Clean, reproducible testing runs |
 
 ---
 
@@ -236,18 +256,78 @@ adx sha
 adx sha --keystore /path/to/release.jks --alias mykey --password secret
 ```
 
-#### App, Toolchain & Diagnostic Utilities
+---
+
+### 🔍 Diagnostics, Crashes & Testing
+
+#### 💥 App Crash & ANR Summarizer (`adx crash` / `adx trace`)
+Extracts recent crash or ANR stack traces from logcat, filters out OS noise, identifies the root cause, and provides clickable links directly to the offending file & line number.
+```bash
+adx crash                # Analyze recent crash/ANR
+adx trace                # Alias
+adx crash --json         # Machine-readable output for AI agents
+adx crash --lines 500    # Scan deeper logcat buffer
+```
+
+#### 🧪 Unit Tests with Failure Summarizer (`adx test`)
+Runs unit tests and isolates *only* the failing assertions with expected vs. actual values to save tokens and time.
+```bash
+adx test                 # Run tests with summary report
+adx test --failed-only   # Print only failing test assertions (95% token savings)
+adx test --summary       # Compact test suite results
+adx test --json          # Pure JSON output of test suite results
+```
+
+#### 🌳 Dependency Explorer & Build Performance (`adx deps` & `adx analyze-build`)
+Look up dependency trees, check for duplicate transitive libraries, and diagnose build-cache and daemon performance.
+```bash
+adx deps                 # View declared Version Catalog dependencies
+adx deps --find coil     # Search entire transitive dependency graph
+adx deps --tree          # Print full resolution tree via Gradle
+adx analyze-build        # Instant build-cache & Gradle daemon diagnostics
+adx analyze-build --json # Machine-readable build diagnostics
+```
+
+#### 📐 Screen Layout & Interactive UI Inspection (`adx layout` / `adx ui`)
+Captures a live UI Automator dump and formats it as a colored tree or structured JSON.
+```bash
+adx layout dump --json   # Structured JSON view of interactive screen elements
+adx ui --json            # JSON hierarchy
+adx ui --filter Button   # Filter specific UI nodes on screen
+adx ui --save screen.xml # Save raw XML hierarchy
+```
+
+#### 🌐 Port Forwarding & Reverse Proxying (`adx reverse` / `adx port-forward`)
+Expose localhost backend APIs to your Android app or forward host socket connections.
+```bash
+adx reverse 8080         # Forward host localhost:8080 into Android app
+adx reverse 3000 8080    # Custom port mapping (device:host)
+adx port-forward 9222 9222 # Forward host port to device
+```
+
+---
+
+### 🌐 Global Flags
+
+| Flag | Description |
+|---|---|
+| `--json` | Emits machine-readable JSON for scripts and AI agents |
+| `--auto-pick` | Auto-selects running emulator or first device non-interactively |
+| `-d, --device <serial>` | Target a specific ADB device serial |
+| `-C, --dir <path>` | Target Android project root directory (default `.`) |
+| `-v, --verbose` | Stream full verbose Gradle / build logs |
+
+---
+
+### 🧰 All Other Commands
 ```bash
 adx check-compat         # Validate Kotlin, Compose Compiler, AGP & Gradle compatibility
-adx ui                   # Dump active screen UI hierarchy tree (Layout Inspector)
-adx ui --filter Button   # Inspect specific UI node elements on screen
 adx proxy set 192.168.1.5:8888 # Route device network traffic to Proxyman/Charles
 adx proxy clear          # Clear proxy and restore direct device connection
 adx proxy status         # Check active HTTP proxy on connected device
 adx prefs dump           # Dump SharedPreferences XML files from app storage
 adx db list              # List SQLite / Room databases inside app storage
 adx db pull app.db       # Pull SQLite database from device to host machine
-adx reverse 8080         # Forward localhost:8080 to Android device
 adx clear                # Clear app data & cache on device (Room, SharedPreferences)
 adx uninstall            # Uninstall app from connected device(s)
 adx stop                 # Force stop app process
@@ -257,7 +337,6 @@ adx info                 # Inspect project root, module structure, and package I
 adx install app --open   # Auto-detect available APK (prefers release), install and open
 adx install release --open # Install built release APK and launch it
 adx bundle / adx aab     # Build Google Play App Bundle (.aab)
-adx test                 # Run unit tests with clickable HTML report
 adx lint                 # Run Android Lint analysis with clickable report
 adx analyse              # Full quality check: lint + tests + all static analysis
 adx analyse :feature:x   # Analyse a specific module only

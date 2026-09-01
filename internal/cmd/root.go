@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/Shashwat-CODING/adx/internal/adb"
 	"github.com/Shashwat-CODING/adx/internal/project"
@@ -14,6 +15,8 @@ var (
 	projectDirFlag string
 	deviceFlag     string
 	verboseFlag    bool
+	jsonFlag       bool
+	autoPickFlag   bool
 
 	rootCmd = &cobra.Command{
 		Use:   "adx",
@@ -27,7 +30,7 @@ It simplifies Gradle and ADB workflows:
   adx devices
   adx doctor`,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if cmd.Name() != "completion" {
+			if cmd.Name() != "completion" && !jsonFlag {
 				ui.PrintBannerOnce()
 			}
 		},
@@ -37,7 +40,11 @@ It simplifies Gradle and ADB workflows:
 // Execute runs the root CLI command
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		ui.Error("%v", err)
+		if jsonFlag {
+			fmt.Fprintf(os.Stderr, "{\"error\": %q}\n", err.Error())
+		} else {
+			ui.Error("%v", err)
+		}
 		os.Exit(1)
 	}
 }
@@ -46,10 +53,14 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&projectDirFlag, "dir", "C", ".", "Android project root directory")
 	rootCmd.PersistentFlags().StringVarP(&deviceFlag, "device", "d", "", "Target ADB device serial")
 	rootCmd.PersistentFlags().BoolVarP(&verboseFlag, "verbose", "v", false, "Print full verbose output")
+	rootCmd.PersistentFlags().BoolVar(&jsonFlag, "json", false, "Emit output in machine-readable JSON format")
+	rootCmd.PersistentFlags().BoolVar(&autoPickFlag, "auto-pick", false, "Automatically pick emulator or first connected device without prompt")
 
 	defaultHelp := rootCmd.HelpFunc()
 	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
-		ui.PrintBannerOnce()
+		if !jsonFlag {
+			ui.PrintBannerOnce()
+		}
 		defaultHelp(cmd, args)
 	})
 }
@@ -57,6 +68,11 @@ func init() {
 // IsVerbose returns whether verbose mode is enabled
 func IsVerbose() bool {
 	return verboseFlag
+}
+
+// IsJSON returns whether JSON output is requested
+func IsJSON() bool {
+	return jsonFlag
 }
 
 // GetProject loads the Android project context from the current or specified directory
@@ -99,8 +115,26 @@ func ResolveTargetDevices(client *adb.Client) ([]adb.Device, error) {
 
 	// If single device
 	if len(devices) == 1 {
-		ui.Info("Using connected device: %s (%s)", devices[0].Model, devices[0].Serial)
+		if !jsonFlag {
+			ui.Info("Using connected device: %s (%s)", devices[0].Model, devices[0].Serial)
+		}
 		return devices, nil
+	}
+
+	// If auto-pick or JSON mode enabled, pick running emulator first, else the first device
+	if autoPickFlag || jsonFlag {
+		for _, d := range devices {
+			if strings.HasPrefix(d.Serial, "emulator-") {
+				if !jsonFlag {
+					ui.Info("Auto-picked running emulator: %s (%s)", d.Model, d.Serial)
+				}
+				return []adb.Device{d}, nil
+			}
+		}
+		if !jsonFlag {
+			ui.Info("Auto-picked first device: %s (%s)", devices[0].Model, devices[0].Serial)
+		}
+		return []adb.Device{devices[0]}, nil
 	}
 
 	// Multiple devices -> interactive prompt
